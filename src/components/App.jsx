@@ -20,27 +20,29 @@ export const App = () => {
   }, []);
 
   useEffect(() => {
-    const fetchData = async () => {if (queryState !== '') {setIsLoading(true);
-      try {
-        const images = await getImages(queryState, page);
-        if (images.length > 0) {
-          setHasMoreImages(true);
+    const fetchData = async () => {
+      if (queryState !== '') {
+        setIsLoading(true);
+        try {
+          const images = await getImages(queryState, page);
+          if (images.length > 0) {
+            setHasMoreImages(true);
+          }
+          if (images.length < 12) {
+            setHasMoreImages(false);
+          }
+          const processedImages = images.map(image => ({
+            id: image.id,
+            webformatURL: image.webformatURL,
+            largeImageURL: image.largeImageURL,
+          }));
+          setImages(prevImages => [...prevImages, ...processedImages]);
+        } catch (error) {
+          console.log('Error.Please reload page');
+        } finally {
+          setIsLoading(false);
         }
-        if (images.length < 12) {
-          setHasMoreImages(false);
-        }
-        const processedImages = images.map(image => ({
-          id: image.id,
-          webformatURL: image.webformatURL,
-          largeImageURL: image.largeImageURL,
-        }));
-        setImages(prevImages => [...prevImages, ...processedImages]);
-      } catch (error) {
-        console.log('Error.Please reload page');
-      } finally {
-        setIsLoading(false);
-      }}
-      
+      }
     };
     fetchData();
   }, [queryState, page]);
@@ -54,10 +56,14 @@ export const App = () => {
   const loadMoreImages = async () => {
     setPage(page + 1);
   };
+  const handleEscKeyPress = e => {
+    if (e.key === 'Escape' && isModalOpen === false) {
+      closeModal();
+    }
+  };
 
   const openModal = imageUrl => {
     document.addEventListener('keydown', handleEscKeyPress);
-
     setIsModalOpen(true);
     setSelectedImageUrl(imageUrl);
   };
@@ -68,11 +74,7 @@ export const App = () => {
     setIsModalOpen(false);
     setSelectedImageUrl('');
   };
-  const handleEscKeyPress = e => {
-    if (e.key === 'Escape' && isModalOpen) {
-      closeModal();
-    }
-  };
+ 
 
   return (
     <div>
