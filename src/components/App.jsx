@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { Searchbar } from './Searchbar/Searchbar';
 import { ImageGallery } from './ImageGallery/ImageGallery';
 import { Button } from './Button/Button';
@@ -6,102 +6,90 @@ import { Loader } from './Loader/Loader';
 import { Modal } from './Modal/Modal';
 import { getImages } from './GetImages';
 
-export class App extends Component {
-  state = {
-    images: [],
-    page: 1,
-    queryState: '',
-    isModalOpen: false,
-    selectedImageUrl: '',
-    isLoading: false,
-    hasMoreImages: false,
-  };
+export const App = () => {
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [queryState, setQueryState] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasMoreImages, setHasMoreImages] = useState(false);
 
-  async componentDidUpdate(prevProps, PrevState) {
+  useEffect(() => {
+    setImages([]);
+  }, []);
 
-    if (
-      PrevState.queryState !== this.state.queryState ||
-      PrevState.page !== this.state.page
-    ) {
-      this.setState({ isLoading: true });
+  useEffect(() => {
+    const fetchData = async () => {if (queryState !== '') {setIsLoading(true);
       try {
-        const images = await getImages(this.state.queryState, this.state.page);
+        const images = await getImages(queryState, page);
         if (images.length > 0) {
-          this.setState({ hasMoreImages: true });
+          setHasMoreImages(true);
         }
         if (images.length < 12) {
-          this.setState({ hasMoreImages: false });
+          setHasMoreImages(false);
         }
         const processedImages = images.map(image => ({
           id: image.id,
           webformatURL: image.webformatURL,
           largeImageURL: image.largeImageURL,
         }));
-        // this.setState({ images: processedImages });
-        this.setState(prevState => ({
-          images: [...prevState.images, ...processedImages],
-        }));
+        setImages(prevImages => [...prevImages, ...processedImages]);
       } catch (error) {
         console.log('Error.Please reload page');
       } finally {
-        this.setState({ isLoading: false });
-      }
-    }
-  }
+        setIsLoading(false);
+      }}
+      
+    };
+    fetchData();
+  }, [queryState, page]);
 
-  handleSearch = query => {
-    this.setState({ page: 1, images: [], queryState: query });
+  const handleSearch = query => {
+    setPage(1);
+    setImages([]);
+    setQueryState(query);
   };
 
-  loadMoreImages = async () => {
-    const { page } = this.state;
-    const nextPage = page + 1;
-    this.setState({ page: nextPage });
+  const loadMoreImages = async () => {
+    setPage(page + 1);
   };
 
-  openModal = imageUrl => {
-    document.addEventListener('keydown', this.handleEscKeyPress);
+  const openModal = imageUrl => {
+    document.addEventListener('keydown', handleEscKeyPress);
 
-    this.setState({
-      isModalOpen: true,
-      selectedImageUrl: imageUrl,
-    });
+    setIsModalOpen(true);
+    setSelectedImageUrl(imageUrl);
   };
 
-  closeModal = () => {
-    document.removeEventListener('keydown', this.handleEscKeyPress);
+  const closeModal = () => {
+    document.removeEventListener('keydown', handleEscKeyPress);
 
-    this.setState({
-      isModalOpen: false,
-      selectedImageUrl: '',
-    });
+    setIsModalOpen(false);
+    setSelectedImageUrl('');
   };
-  handleEscKeyPress = e => {
-    if (e.key === 'Escape' && this.state.isModalOpen) {
-      this.closeModal();
+  const handleEscKeyPress = e => {
+    if (e.key === 'Escape' && isModalOpen) {
+      closeModal();
     }
   };
 
-  render() {
-    return (
-      <div>
-        <Searchbar onSubmit={this.handleSearch} />
+  return (
+    <div>
+      <Searchbar onSubmit={handleSearch} />
 
-        {this.state.isLoading ? (
-          <Loader />
-        ) : (
-          <ImageGallery data={this.state.images} openModal={this.openModal} />
-        )}
-        {this.state.hasMoreImages ? (
-          <Button onClick={this.loadMoreImages} />
-        ) : null}
+      {isLoading ? (
+        <Loader />
+      ) : (
+        <ImageGallery data={images} openModal={openModal} />
+      )}
+      {hasMoreImages ? <Button onClick={loadMoreImages} /> : null}
 
-        <Modal
-          isOpen={this.state.isModalOpen}
-          onClose={this.closeModal}
-          imageUrl={this.state.selectedImageUrl}
-        />
-      </div>
-    );
-  }
-}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        imageUrl={selectedImageUrl}
+      />
+    </div>
+  );
+};
